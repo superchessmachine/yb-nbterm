@@ -31,6 +31,12 @@ Open an interactive notebook:
 $ nbterm my_notebook.ipynb
 ```
 
+Choose an alternate keymap (Vim placeholder for now):
+
+```
+$ nbterm --keymap vim my_notebook.ipynb
+```
+
 Run a notebook in batch mode:
 
 ```

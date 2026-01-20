@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 import asyncio
-from typing import Optional
+from typing import Optional, Literal
 
 import typer
 
@@ -39,6 +39,12 @@ def main(
     save_path: Optional[Path] = typer.Option(
         None, "--save-path", help="Path to save the notebook."
     ),
+    keymap: Literal["default", "vim"] = typer.Option(
+        "default",
+        "--keymap",
+        help="Keymap to use for key bindings.",
+        show_choices=True,
+    ),
     version: Optional[bool] = typer.Option(
         None, "--version", callback=version_callback, help="Show the version and exit."
     ),
@@ -61,12 +67,14 @@ def main(
     if test is not None:
         typer.echo(f"notebook_path={notebook_path}")
         typer.echo(f"kernel_cwd={kernel_cwd}")
+        typer.echo(f"keymap={keymap}")
         sys.exit(0)
     nb = Notebook(
         notebook_path,
         kernel_cwd=kernel_cwd,
         no_kernel=no_kernel or False,
         save_path=save_path,
+        keymap=keymap,
     )
     if run:
         assert no_kernel is not True

@@ -25,6 +25,7 @@ def test_untitled():
     assert result.exit_code == 0
     assert get_value("notebook_path", result.stdout) == "Untitled.ipynb"
     assert get_value("kernel_cwd", result.stdout) == "."
+    assert get_value("keymap", result.stdout) == "default"
 
 
 @pytest.mark.parametrize(
@@ -41,10 +42,11 @@ def test_untitled_in_directory(notebook_name, tmp_dir):
 
 def test_notebook_path(tmp_dir):
     path = str(tmp_dir / "foo.ipynb")
-    result = runner.invoke(app, [path, "--test", "0"])
+    result = runner.invoke(app, [path, "--keymap", "vim", "--test", "0"])
     assert result.exit_code == 0
     assert get_value("notebook_path", result.stdout) == path
     assert get_value("kernel_cwd", result.stdout) == str(tmp_dir)
+    assert get_value("keymap", result.stdout) == "vim"
 
 
 def test_kernel_cwd(tmp_dir):

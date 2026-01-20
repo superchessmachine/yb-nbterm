@@ -6,7 +6,21 @@ class KeyBindings:
     edit_mode: bool
     help_mode: bool
 
-    def bind_keys(self):
+    def setup_keybindings(self, mode: str = "default"):
+        if mode == "default":
+            self._bind_default_keymap()
+        elif mode == "vim":
+            self._bind_vim_keymap()
+        else:
+            raise ValueError(f"Unknown keymap: {mode}")
+
+    def bind_keys(self, mode: str = "default"):
+        self.setup_keybindings(mode=mode)
+
+    def _bind_vim_keymap(self):
+        self._bind_default_keymap()
+
+    def _bind_default_keymap(self):
         @Condition
         def edit_mode() -> bool:
             return self.edit_mode and not self.help_mode

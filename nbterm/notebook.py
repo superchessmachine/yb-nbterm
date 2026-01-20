@@ -61,6 +61,7 @@ class Notebook(Help, Format, KeyBindings):
         kernel_cwd: Path = Path("."),
         no_kernel: bool = False,
         save_path: Optional[Path] = None,
+        keymap: str = "default",
     ):
         self.nb_path = nb_path.resolve()
         self.kernel_cwd = kernel_cwd.resolve()
@@ -71,6 +72,7 @@ class Notebook(Help, Format, KeyBindings):
         set_console(self.console)
         self.save_path = save_path
         self.no_kernel = no_kernel
+        self.keymap = keymap
         self.executing_cells = {}
         self.top_cell_idx = 0
         self.bottom_cell_idx = -1
@@ -121,7 +123,7 @@ class Notebook(Help, Format, KeyBindings):
 
     def show(self):
         self.key_bindings = PtKeyBindings()
-        self.bind_keys()
+        self.setup_keybindings(mode=self.keymap)
         self.create_layout()
         self.app = Application(
             layout=self.layout, key_bindings=self.key_bindings, full_screen=True

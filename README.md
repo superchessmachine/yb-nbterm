@@ -31,7 +31,7 @@ Open an interactive notebook:
 $ nbterm my_notebook.ipynb
 ```
 
-Choose an alternate keymap (Vim placeholder for now):
+Choose an alternate keymap (Vim mode adds a `:` command-line):
 
 ```
 $ nbterm --keymap vim my_notebook.ipynb
@@ -45,7 +45,7 @@ $ nbterm --run my_notebook.ipynb
 
 ## Key bindings
 
-There are two modes: edit mode, and command mode.
+There are two modes: edit mode, and command mode (Vim mode also adds a command-line mini-buffer via `:` in command mode).
 
 - `enter`: enter the edit mode, allowing to type into the cell.
 - `esc`: exit the edit mode and enter the command mode.
@@ -71,3 +71,10 @@ In command mode:
 - `ctrl-s`: save.
 - `ctrl-q`: exit.
 - `ctrl-h`: show help.
+
+In Vim keymap command-line (`:`):
+
+- `:w` save notebook.
+- `:q` quit.
+- `:wq` / `:x` save & quit.
+- `:help` open the help screen.

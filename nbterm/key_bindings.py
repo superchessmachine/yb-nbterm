@@ -20,6 +20,30 @@ class KeyBindings:
     def _bind_vim_keymap(self):
         self._bind_default_keymap()
 
+        @Condition
+        def command_line_mode() -> bool:
+            return self.command_line_active
+
+        @Condition
+        def command_mode_available() -> bool:
+            return (
+                not self.edit_mode
+                and not self.help_mode
+                and not self.command_line_active
+            )
+
+        @self.key_bindings.add(":", filter=command_mode_available, eager=True)
+        def enter_command_line(event):
+            self.open_command_line()
+
+        @self.key_bindings.add("escape", filter=command_line_mode, eager=True)
+        def cancel_command_line(event):
+            self.cancel_command_line()
+
+        @self.key_bindings.add("enter", filter=command_line_mode, eager=True)
+        def submit_command_line(event):
+            event.app.create_background_task(self.execute_command_line())
+
     def _bind_default_keymap(self):
         @Condition
         def edit_mode() -> bool:

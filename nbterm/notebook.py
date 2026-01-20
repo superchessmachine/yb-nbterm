@@ -5,11 +5,13 @@ import asyncio
 from typing import List, Dict, Tuple, Any, Optional, cast
 
 from prompt_toolkit import ANSI
+from prompt_toolkit.buffer import Buffer
+from prompt_toolkit.document import Document
 from prompt_toolkit.key_binding import KeyBindings as PtKeyBindings
 from prompt_toolkit.layout import ScrollablePane
-from prompt_toolkit.layout.containers import HSplit, VSplit
+from prompt_toolkit.layout.containers import HSplit, VSplit, Window
+from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
-from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.widgets.toolbars import FormattedTextToolbar
 from pygments.lexers.python import PythonLexer  # type: ignore
@@ -87,6 +89,9 @@ class Notebook(Help, Format, KeyBindings):
         self.msg_id_2_execution_count = {}
         self.edit_mode = False
         self.help_mode = False
+        self.status_message = ""
+        self.command_line_active = False
+        self._init_command_line()
 
     def set_language(self):
         self.kernel_name = self.json["metadata"]["kernelspec"]["name"]
@@ -131,10 +136,12 @@ class Notebook(Help, Format, KeyBindings):
         self.focus(0)
         asyncio.run(self._show())
 
-    def update_layout(self):
+    def update_layout(self, invalidate: bool = False):
         if self.app:
             self.create_layout()
             self.app.layout = self.layout
+            if invalidate:
+                self.app.invalidate()
 
     def create_layout(self):
         inout_cells = list(
@@ -177,6 +184,8 @@ class Notebook(Help, Format, KeyBindings):
             text += (
                 f" @ {self.kernel_cwd} - {self.current_cell_idx + 1}/{len(self.cells)}"
             )
+            if self.status_message:
+                text += f" | {self.status_message}"
             return text
 
         self.top_bar = FormattedTextToolbar(
@@ -185,7 +194,10 @@ class Notebook(Help, Format, KeyBindings):
         self.bottom_bar = FormattedTextToolbar(
             get_bottom_bar_text, style="#ffffff bg:#444444"
         )
-        root_container = HSplit([self.top_bar, nb_window, self.bottom_bar])
+        children = [self.top_bar, nb_window, self.bottom_bar]
+        if self.command_line_active:
+            children.append(self.command_line_bar)
+        root_container = HSplit(children)
         self.layout = Layout(root_container)
 
     def focus(self, idx: int, update_layout: bool = False, no_change: bool = False):
@@ -412,3 +424,76 @@ class Notebook(Help, Format, KeyBindings):
 
     def go_down(self):
         self.focus(self.current_cell_idx + 1, no_change=True)
+
+    def _init_command_line(self):
+        self.command_line_buffer = Buffer(multiline=False)
+        self.command_line_input_window = Window(
+            content=BufferControl(buffer=self.command_line_buffer), height=1
+        )
+        prompt_window = Window(
+            content=FormattedTextControl(text=":"),
+            width=2,
+            dont_extend_width=True,
+            height=1,
+        )
+        self.command_line_bar = VSplit(
+            [prompt_window, self.command_line_input_window], height=1
+        )
+
+    def update_layout(self, invalidate: bool = False):
+        if self.app:
+            self.create_layout()
+            self.app.layout = self.layout
+            if invalidate:
+                self.app.invalidate()
+
+    def set_status_message(self, message: str):
+        self.status_message = message
+        if self.app:
+            self.app.invalidate()
+
+    def open_command_line(self):
+        if self.command_line_active:
+            return
+        self.command_line_buffer.reset(Document(text="", cursor_position=0))
+        self.command_line_active = True
+        self.set_status_message("")
+        self.update_layout(invalidate=True)
+        if self.app:
+            self.app.layout.focus(self.command_line_input_window)
+
+    def cancel_command_line(self):
+        if not self.command_line_active:
+            return
+        self.command_line_buffer.reset(Document(text="", cursor_position=0))
+        self.command_line_active = False
+        self.update_layout(invalidate=True)
+        if self.app:
+            self.focus(self.current_cell_idx, no_change=True)
+
+    async def execute_command_line(self):
+        command = self.command_line_buffer.text.strip()
+        self.command_line_buffer.reset(Document(text="", cursor_position=0))
+        self.command_line_active = False
+        self.update_layout(invalidate=True)
+        if self.app:
+            self.focus(self.current_cell_idx, no_change=True)
+        if not command:
+            self.set_status_message("")
+            return
+        self.quitting = False
+        if command == "w":
+            self.save()
+            self.set_status_message("")
+        elif command == "q":
+            self.set_status_message("")
+            await self.exit()
+        elif command in ("wq", "x"):
+            self.save()
+            self.set_status_message("")
+            await self.exit()
+        elif command == "help":
+            self.set_status_message("")
+            self.show_help()
+        else:
+            self.set_status_message("Unknown command")
